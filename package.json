@@ -1,0 +1,27 @@
+{
+    "name": "voetbal-toernooi-tool",
+    "version": "1.0.0",
+    "description": "Een webgebaseerde tool voor het organiseren van voetbaltoernooien met individuele winnaar",
+    "scripts": {
+        "test": "jest",
+        "start": "serve ."
+    },
+    "author": "",
+    "license": "MIT",
+    "devDependencies": {
+        "jest": "^29.5.0",
+        "jest-environment-jsdom": "^29.5.0",
+        "serve": "^14.2.0"
+    },
+    "jest": {
+        "testEnvironment": "jsdom",
+        "verbose": true,
+        "collectCoverage": true,
+        "moduleFileExtensions": [
+            "js"
+        ],
+        "transform": {
+            "^.+\\.js$": "babel-jest"
+        }
+    }
+}

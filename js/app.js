@@ -1,1182 +1,938 @@
-// Tournament App Main JavaScript File
+// Voetbal Toernooi Tool - Main Application
 
-// Data Model
-const tournamentData = {
-    players: [],
-    settings: {
-        teamSize: 4,
-        fieldsCount: 4,
-        matchDuration: 8,
-        tournamentDuration: 90,
-        winPoints: 10,
-        drawPoints: 5,
-        goalPoints: 1
-    },
-    rounds: [],
-    matches: [],
-    nextPlayerId: 1
+// Import modules
+import dataService from './modules/data.js';
+import playerOverviewService from './modules/playerOverview.js';
+import scheduleService from './modules/schedule.js';
+import stateManager, { Events } from './modules/state.js';
+import utils from './modules/utils.js';
+
+// DOM-elementen
+const DOM = {
+    // Spelers tab
+    playerName: document.getElementById('playerName'),
+    playerCategory: document.getElementById('playerCategory'),
+    addPlayerBtn: document.getElementById('addPlayerBtn'),
+    importPlayersFile: document.getElementById('importPlayersFile'),
+    importPlayersBtn: document.getElementById('importPlayersBtn'),
+    removeAllPlayersBtn: document.getElementById('removeAllPlayersBtn'),
+    playersList: document.getElementById('playersList'),
+
+    // Instellingen tab
+    teamSize: document.getElementById('teamSize'),
+    fieldsCount: document.getElementById('fieldsCount'),
+    matchDuration: document.getElementById('matchDuration'),
+    tournamentDuration: document.getElementById('tournamentDuration'),
+    winPoints: document.getElementById('winPoints'),
+    drawPoints: document.getElementById('drawPoints'),
+    goalPoints: document.getElementById('goalPoints'),
+    saveSettingsBtn: document.getElementById('saveSettingsBtn'),
+
+    // Schema tab
+    generateScheduleBtn: document.getElementById('generateScheduleBtn'),
+    exportScheduleBtn: document.getElementById('exportScheduleBtn'),
+    scheduleContainer: document.getElementById('scheduleContainer'),
+
+    // Veldindeling tab
+    roundSelect: document.getElementById('roundSelect'),
+    fieldsContainer: document.getElementById('fieldsContainer'),
+
+    // Wedstrijden tab
+    matchRoundSelect: document.getElementById('matchRoundSelect'),
+    matchesContainer: document.getElementById('matchesContainer'),
+
+    // Stand tab
+    allStandingsList: document.getElementById('allStandingsList'),
+    o11StandingsList: document.getElementById('o11StandingsList'),
+    o12StandingsList: document.getElementById('o12StandingsList'),
+    printStandingsBtn: document.getElementById('printStandingsBtn'),
+
+    // Speleroverzicht tab
+    showAllRounds: document.getElementById('showAllRounds'),
+    exportOverviewBtn: document.getElementById('exportOverviewBtn'),
+    playerOverviewTableHead: document.getElementById('playerOverviewTableHead'),
+    playerOverviewTableBody: document.getElementById('playerOverviewTableBody'),
+
+    // Modals
+    editPlayerModal: new bootstrap.Modal(document.getElementById('editPlayerModal')),
+    editPlayerId: document.getElementById('editPlayerId'),
+    editPlayerName: document.getElementById('editPlayerName'),
+    editPlayerCategory: document.getElementById('editPlayerCategory'),
+    saveEditPlayerBtn: document.getElementById('saveEditPlayerBtn'),
+
+    matchResultModal: new bootstrap.Modal(document.getElementById('matchResultModal')),
+    editMatchId: document.getElementById('editMatchId'),
+    homeTeamName: document.getElementById('homeTeamName'),
+    awayTeamName: document.getElementById('awayTeamName'),
+    homeTeamScore: document.getElementById('homeTeamScore'),
+    awayTeamScore: document.getElementById('awayTeamScore'),
+    saveMatchResultBtn: document.getElementById('saveMatchResultBtn')
 };
 
-// DOM Ready
-document.addEventListener('DOMContentLoaded', function () {
-    // Initialize settings
-    initSettings();
+// ----------------------------------------
+// Spelers management
+// ----------------------------------------
 
-    // Load data from localStorage if available
-    loadFromLocalStorage();
+// Toon alle spelers in de tabel
+function displayPlayers() {
+    const players = dataService.getPlayers();
+    DOM.playersList.innerHTML = '';
 
-    // Set up event listeners
-    setupEventListeners();
-
-    // Update UI with loaded data
-    updateUI();
-
-    // Setup Bootstrap tab events voor spelersoverzicht
-    const overviewTab = document.getElementById('overview-tab');
-    overviewTab.addEventListener('shown.bs.tab', function (e) {
-        console.log('Spelersoverzicht tab geactiveerd');
-        displayPlayerOverview();
-    });
-});
-
-// Initialize settings from form
-function initSettings() {
-    document.getElementById('teamSize').value = tournamentData.settings.teamSize;
-    document.getElementById('fieldsCount').value = tournamentData.settings.fieldsCount;
-    document.getElementById('matchDuration').value = tournamentData.settings.matchDuration;
-    document.getElementById('tournamentDuration').value = tournamentData.settings.tournamentDuration;
-    document.getElementById('winPoints').value = tournamentData.settings.winPoints;
-    document.getElementById('drawPoints').value = tournamentData.settings.drawPoints;
-    document.getElementById('goalPoints').value = tournamentData.settings.goalPoints;
-}
-
-// Save settings from form
-function saveSettings() {
-    tournamentData.settings.teamSize = parseInt(document.getElementById('teamSize').value);
-    tournamentData.settings.fieldsCount = parseInt(document.getElementById('fieldsCount').value);
-    tournamentData.settings.matchDuration = parseInt(document.getElementById('matchDuration').value);
-    tournamentData.settings.tournamentDuration = parseInt(document.getElementById('tournamentDuration').value);
-    tournamentData.settings.winPoints = parseInt(document.getElementById('winPoints').value);
-    tournamentData.settings.drawPoints = parseInt(document.getElementById('drawPoints').value);
-    tournamentData.settings.goalPoints = parseInt(document.getElementById('goalPoints').value);
-
-    saveToLocalStorage();
-
-    // Show confirmation
-    alert('Instellingen opgeslagen!');
-}
-
-// Setup Event Listeners
-function setupEventListeners() {
-    // Player Management
-    document.getElementById('addPlayerBtn').addEventListener('click', addPlayer);
-    document.getElementById('importPlayersBtn').addEventListener('click', importPlayers);
-    document.getElementById('playersList').addEventListener('click', handlePlayerAction);
-    document.getElementById('removeAllPlayersBtn').addEventListener('click', removeAllPlayers);
-
-    // Settings
-    document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
-
-    // Schedule
-    document.getElementById('generateScheduleBtn').addEventListener('click', generateSchedule);
-    document.getElementById('exportScheduleBtn').addEventListener('click', exportSchedule);
-
-    // Fields view
-    document.getElementById('roundSelect').addEventListener('change', displayFieldsForRound);
-
-    // Matches
-    document.getElementById('matchRoundSelect').addEventListener('change', displayMatchesForRound);
-    document.getElementById('matchesContainer').addEventListener('click', handleMatchAction);
-    document.getElementById('saveMatchResultBtn').addEventListener('click', saveMatchResult);
-
-    // Standings
-    document.getElementById('printStandingsBtn').addEventListener('click', printStandings);
-
-    // Player Overview
-    document.getElementById('exportOverviewBtn').addEventListener('click', exportPlayerOverview);
-    document.getElementById('showAllRounds').addEventListener('change', displayPlayerOverview);
-
-    // Modal Handlers
-    document.getElementById('saveEditPlayerBtn').addEventListener('click', saveEditPlayer);
-
-    // Tab change event voor spelersoverzicht
-    document.getElementById('overview-tab').addEventListener('click', displayPlayerOverview);
-}
-
-// Player Management Functions
-function addPlayer() {
-    const playerName = document.getElementById('playerName').value.trim();
-    const playerCategory = document.getElementById('playerCategory').value;
-
-    if (playerName === '') {
-        alert('Vul een naam in voor de speler.');
-        return;
-    }
-
-    const player = {
-        id: tournamentData.nextPlayerId++,
-        name: playerName,
-        category: playerCategory,
-        stats: {
-            wins: 0,
-            draws: 0,
-            losses: 0,
-            goals: 0,
-            points: 0
-        }
-    };
-
-    tournamentData.players.push(player);
-
-    // Clear input field
-    document.getElementById('playerName').value = '';
-
-    // Update UI and save
-    updatePlayersList();
-    saveToLocalStorage();
-}
-
-function importPlayers() {
-    const fileInput = document.getElementById('importPlayersFile');
-
-    if (fileInput.files.length === 0) {
-        alert('Selecteer eerst een bestand');
-        return;
-    }
-
-    const file = fileInput.files[0];
-
-    const reader = new FileReader();
-    reader.onload = function (e) {
-        const contents = e.target.result;
-        const lines = contents.split('\n');
-
-        let importCount = 0;
-
-        for (const line of lines) {
-            const trimmedLine = line.trim();
-            if (trimmedLine === '') continue;
-
-            let name, category;
-
-            if (trimmedLine.includes(',')) {
-                const parts = trimmedLine.split(',');
-                name = parts[0].trim();
-                category = parts[1].trim();
-            } else {
-                name = trimmedLine;
-                category = 'JO15'; // Default category gewijzigd naar JO15
-            }
-
-            // Only import if name is valid
-            if (name) {
-                const player = {
-                    id: tournamentData.nextPlayerId++,
-                    name: name,
-                    category: category,
-                    stats: {
-                        wins: 0,
-                        draws: 0,
-                        losses: 0,
-                        goals: 0,
-                        points: 0
-                    }
-                };
-
-                tournamentData.players.push(player);
-                importCount++;
-            }
-        }
-
-        // Clear file input
-        fileInput.value = '';
-
-        // Update UI and save
-        updatePlayersList();
-        saveToLocalStorage();
-
-        alert(`${importCount} spelers geïmporteerd!`);
-    };
-
-    reader.readAsText(file);
-}
-
-function handlePlayerAction(e) {
-    // Zoek het button element (kan e.target zijn of een parent)
-    let target = e.target;
-    while (target && target.tagName !== 'BUTTON') {
-        target = target.parentElement;
-    }
-
-    if (!target) return;
-
-    if (target.classList.contains('edit-player-btn')) {
-        const playerId = parseInt(target.dataset.playerId);
-        editPlayer(playerId);
-    } else if (target.classList.contains('delete-player-btn')) {
-        const playerId = parseInt(target.dataset.playerId);
-        deletePlayer(playerId);
-    }
-}
-
-function editPlayer(playerId) {
-    const player = tournamentData.players.find(p => p.id === playerId);
-
-    if (!player) return;
-
-    document.getElementById('editPlayerId').value = player.id;
-    document.getElementById('editPlayerName').value = player.name;
-    document.getElementById('editPlayerCategory').value = player.category;
-
-    // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('editPlayerModal'));
-    modal.show();
-}
-
-function saveEditPlayer() {
-    const playerId = parseInt(document.getElementById('editPlayerId').value);
-    const playerName = document.getElementById('editPlayerName').value.trim();
-    const playerCategory = document.getElementById('editPlayerCategory').value;
-
-    if (playerName === '') {
-        alert('Vul een naam in voor de speler.');
-        return;
-    }
-
-    const player = tournamentData.players.find(p => p.id === playerId);
-
-    if (player) {
-        player.name = playerName;
-        player.category = playerCategory;
-
-        // Update UI and save
-        updatePlayersList();
-        saveToLocalStorage();
-
-        // Hide modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('editPlayerModal'));
-        modal.hide();
-    }
-}
-
-function deletePlayer(playerId) {
-    if (!confirm('Weet je zeker dat je deze speler wilt verwijderen?')) {
-        return;
-    }
-
-    tournamentData.players = tournamentData.players.filter(p => p.id !== playerId);
-
-    // Update UI and save
-    updatePlayersList();
-    saveToLocalStorage();
-}
-
-function updatePlayersList() {
-    const tbody = document.getElementById('playersList');
-    tbody.innerHTML = '';
-
-    tournamentData.players.forEach((player, index) => {
+    players.forEach((player, index) => {
         const row = document.createElement('tr');
-
         row.innerHTML = `
             <td>${index + 1}</td>
             <td>${player.name}</td>
             <td>${player.category}</td>
             <td>
-                <button class="btn btn-sm btn-outline-primary edit-player-btn" data-player-id="${player.id}">
+                <button class="btn btn-sm btn-primary edit-player" data-id="${player.id}">
                     <i class="fas fa-edit"></i>
                 </button>
-                <button class="btn btn-sm btn-outline-danger delete-player-btn" data-player-id="${player.id}">
+                <button class="btn btn-sm btn-danger delete-player" data-id="${player.id}">
                     <i class="fas fa-trash"></i>
                 </button>
             </td>
         `;
-
-        tbody.appendChild(row);
+        DOM.playersList.appendChild(row);
     });
+
+    // Update state
+    stateManager.notify(Events.PLAYERS_UPDATED, players);
 }
 
-// Schedule Generation Functions
-function generateSchedule() {
-    if (tournamentData.players.length < tournamentData.settings.teamSize * 2) {
-        alert(`Je hebt minimaal ${tournamentData.settings.teamSize * 2} spelers nodig voor een ${tournamentData.settings.teamSize}v${tournamentData.settings.teamSize} toernooi!`);
+// Voeg een nieuwe speler toe
+function addPlayer() {
+    const name = DOM.playerName.value.trim();
+    const category = DOM.playerCategory.value;
+
+    if (name === '') {
+        alert('Vul een naam in');
         return;
     }
 
-    // Clear existing schedule
-    tournamentData.rounds = [];
-    tournamentData.matches = [];
-
-    // Calculate how many rounds we can fit
-    const roundDuration = tournamentData.settings.matchDuration;
-    const totalDuration = tournamentData.settings.tournamentDuration;
-    const possibleRounds = Math.floor(totalDuration / roundDuration);
-
-    // Generate rounds
-    for (let i = 0; i < possibleRounds; i++) {
-        generateRound(i + 1);
-    }
-
-    // Update round selectors
-    updateRoundSelectors();
-
-    // Display the schedule
-    displaySchedule();
-
-    // Save to localStorage
-    saveToLocalStorage();
-}
-
-function generateRound(roundNumber) {
-    // Shuffle players for this round
-    const shuffledPlayers = [...tournamentData.players].sort(() => Math.random() - 0.5);
-
-    const teamSize = tournamentData.settings.teamSize;
-    const fieldsCount = tournamentData.settings.fieldsCount;
-
-    // Create teams for this round
-    const teams = [];
-    const playerAssignments = {};
-    const maxTeams = Math.floor(shuffledPlayers.length / teamSize) * 2;
-    const teamsCount = Math.min(maxTeams, fieldsCount * 2);
-
-    for (let i = 0; i < teamsCount; i++) {
-        teams.push([]);
-    }
-
-    // Assign players to teams
-    for (let i = 0; i < shuffledPlayers.length; i++) {
-        const teamIndex = i % teams.length;
-        if (teams[teamIndex].length < teamSize) {
-            teams[teamIndex].push(shuffledPlayers[i]);
-            playerAssignments[shuffledPlayers[i].id] = String.fromCharCode(65 + teamIndex); // Assign A, B, C, etc.
-        }
-    }
-
-    // Create matches
-    const matches = [];
-
-    for (let i = 0; i < teams.length; i += 2) {
-        if (i + 1 < teams.length) {
-            const match = {
-                id: tournamentData.matches.length + 1,
-                round: roundNumber,
-                field: Math.floor(i / 2) + 1,
-                homeTeam: {
-                    letter: String.fromCharCode(65 + i),
-                    players: teams[i]
-                },
-                awayTeam: {
-                    letter: String.fromCharCode(65 + i + 1),
-                    players: teams[i + 1]
-                },
-                homeScore: null,
-                awayScore: null,
-                completed: false
-            };
-
-            matches.push(match);
-            tournamentData.matches.push(match);
-        }
-    }
-
-    // Create round object
-    const round = {
-        number: roundNumber,
-        playerAssignments: playerAssignments,
-        teams: teams,
-        matches: matches
+    const newPlayer = {
+        id: utils.generateId(),
+        name: name,
+        category: category,
+        score: 0
     };
 
-    tournamentData.rounds.push(round);
+    dataService.addPlayer(newPlayer);
 
-    return round;
+    // Reset input veld
+    DOM.playerName.value = '';
+    DOM.playerName.focus();
+
+    // Update weergave
+    displayPlayers();
 }
 
-function updateRoundSelectors() {
-    const roundSelect = document.getElementById('roundSelect');
-    const matchRoundSelect = document.getElementById('matchRoundSelect');
-
-    // Clear existing options
-    roundSelect.innerHTML = '';
-    matchRoundSelect.innerHTML = '';
-
-    // Add options for each round
-    tournamentData.rounds.forEach(round => {
-        const roundOption = document.createElement('option');
-        roundOption.value = round.number;
-        roundOption.textContent = `Ronde ${round.number}`;
-
-        const matchRoundOption = roundOption.cloneNode(true);
-
-        roundSelect.appendChild(roundOption);
-        matchRoundSelect.appendChild(matchRoundOption);
-    });
-
-    // Trigger change to display first round
-    if (tournamentData.rounds.length > 0) {
-        displayFieldsForRound();
-        displayMatchesForRound();
+// Verwijder een speler
+function deletePlayer(playerId) {
+    if (confirm('Weet je zeker dat je deze speler wilt verwijderen?')) {
+        dataService.removePlayer(playerId);
+        displayPlayers();
     }
 }
 
-function displaySchedule() {
-    const scheduleContainer = document.getElementById('scheduleContainer');
-    scheduleContainer.innerHTML = '';
+// Bewerk een speler
+function editPlayer(playerId) {
+    const player = dataService.getPlayerById(playerId);
 
-    if (tournamentData.rounds.length === 0) {
-        scheduleContainer.innerHTML = '<div class="alert alert-info">Nog geen schema gegenereerd. Klik op "Genereer Schema" om te beginnen.</div>';
-        return;
-    }
-
-    tournamentData.rounds.forEach(round => {
-        // Create round header
-        const roundHeader = document.createElement('div');
-        roundHeader.className = 'round-divider';
-        roundHeader.textContent = `Ronde ${round.number}`;
-        scheduleContainer.appendChild(roundHeader);
-
-        // Create matches for this round
-        round.matches.forEach(match => {
-            const matchCard = document.createElement('div');
-            matchCard.className = 'match-card';
-
-            let homeTeamPlayers = match.homeTeam.players.map(p => p.name).join(', ');
-            let awayTeamPlayers = match.awayTeam.players.map(p => p.name).join(', ');
-
-            let resultText = '';
-            if (match.completed) {
-                resultText = `<div class="match-result">${match.homeScore} - ${match.awayScore}</div>`;
-            }
-
-            matchCard.innerHTML = `
-                <div class="row">
-                    <div class="col-5">
-                        <div class="fw-bold">Team ${match.homeTeam.letter}</div>
-                        <div class="small">${homeTeamPlayers}</div>
-                    </div>
-                    <div class="col-2 text-center">
-                        ${resultText}
-                        <div class="match-field">Veld ${match.field}</div>
-                    </div>
-                    <div class="col-5">
-                        <div class="fw-bold">Team ${match.awayTeam.letter}</div>
-                        <div class="small">${awayTeamPlayers}</div>
-                    </div>
-                </div>
-            `;
-
-            scheduleContainer.appendChild(matchCard);
-        });
-    });
-}
-
-function exportSchedule() {
-    if (tournamentData.rounds.length === 0) {
-        alert('Genereer eerst een schema voordat je het exporteert.');
-        return;
-    }
-
-    let csvContent = 'Ronde,Veld,Team 1,Spelers Team 1,Team 2,Spelers Team 2,Score\n';
-
-    tournamentData.rounds.forEach(round => {
-        round.matches.forEach(match => {
-            const homeTeamPlayers = match.homeTeam.players.map(p => p.name).join(' / ');
-            const awayTeamPlayers = match.awayTeam.players.map(p => p.name).join(' / ');
-
-            let scoreText = 'Nog niet gespeeld';
-            if (match.completed) {
-                scoreText = `${match.homeScore} - ${match.awayScore}`;
-            }
-
-            csvContent += `${round.number},${match.field},Team ${match.homeTeam.letter},"${homeTeamPlayers}",Team ${match.awayTeam.letter},"${awayTeamPlayers}","${scoreText}"\n`;
-        });
-    });
-
-    // Create downloadable link
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'voetbal_toernooi_schema.csv');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-// Field Layout Functions
-function displayFieldsForRound() {
-    const roundSelect = document.getElementById('roundSelect');
-    const fieldsContainer = document.getElementById('fieldsContainer');
-
-    fieldsContainer.innerHTML = '';
-
-    if (tournamentData.rounds.length === 0) {
-        fieldsContainer.innerHTML = '<div class="alert alert-info col-12">Nog geen schema gegenereerd. Ga naar het "Schema" tabblad om een schema te genereren.</div>';
-        return;
-    }
-
-    const roundNumber = parseInt(roundSelect.value);
-    const round = tournamentData.rounds.find(r => r.number === roundNumber);
-
-    if (!round) {
-        return;
-    }
-
-    // Find all players not assigned in this round
-    const assignedPlayerIds = Object.keys(round.playerAssignments).map(id => parseInt(id));
-    const unassignedPlayers = tournamentData.players.filter(p => !assignedPlayerIds.includes(p.id));
-
-    // Display fields
-    round.matches.forEach(match => {
-        const fieldCard = document.createElement('div');
-        fieldCard.className = 'col-md-6 mb-4';
-
-        const homeTeamPlayers = match.homeTeam.players.map(p =>
-            `<div class="player-item">${p.name} (${p.category})</div>`
-        ).join('');
-
-        const awayTeamPlayers = match.awayTeam.players.map(p =>
-            `<div class="player-item">${p.name} (${p.category})</div>`
-        ).join('');
-
-        fieldCard.innerHTML = `
-            <div class="field-card">
-                <h4 class="text-center mb-3">Veld ${match.field}</h4>
-                <div class="row">
-                    <div class="col-6">
-                        <div class="team-container">
-                            <div class="team-heading">Team ${match.homeTeam.letter}</div>
-                            ${homeTeamPlayers}
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="team-container">
-                            <div class="team-heading">Team ${match.awayTeam.letter}</div>
-                            ${awayTeamPlayers}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        fieldsContainer.appendChild(fieldCard);
-    });
-
-    // Display unassigned players
-    if (unassignedPlayers.length > 0) {
-        const unassignedCard = document.createElement('div');
-        unassignedCard.className = 'col-12 mb-4';
-
-        const unassignedPlayersHtml = unassignedPlayers.map(p =>
-            `<div class="player-item">${p.name} (${p.category})</div>`
-        ).join('');
-
-        unassignedCard.innerHTML = `
-            <div class="field-card bg-light">
-                <h4 class="text-center mb-3">Rust deze ronde</h4>
-                <div class="row">
-                    <div class="col-12">
-                        <div class="team-container">
-                            ${unassignedPlayersHtml}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        fieldsContainer.appendChild(unassignedCard);
+    if (player) {
+        DOM.editPlayerId.value = player.id;
+        DOM.editPlayerName.value = player.name;
+        DOM.editPlayerCategory.value = player.category;
+        DOM.editPlayerModal.show();
     }
 }
 
-// Match Results Functions
-function displayMatchesForRound() {
-    const roundSelect = document.getElementById('matchRoundSelect');
-    const matchesContainer = document.getElementById('matchesContainer');
+// Sla bewerkte speler op
+function saveEditPlayer() {
+    const playerId = DOM.editPlayerId.value;
+    const name = DOM.editPlayerName.value.trim();
+    const category = DOM.editPlayerCategory.value;
 
-    matchesContainer.innerHTML = '';
-
-    if (tournamentData.rounds.length === 0) {
-        matchesContainer.innerHTML = '<div class="alert alert-info">Nog geen schema gegenereerd. Ga naar het "Schema" tabblad om een schema te genereren.</div>';
+    if (name === '') {
+        alert('Vul een naam in');
         return;
     }
 
-    const roundNumber = parseInt(roundSelect.value);
-    const round = tournamentData.rounds.find(r => r.number === roundNumber);
+    const updated = dataService.updatePlayer(playerId, { name, category });
 
-    if (!round) {
+    if (updated) {
+        DOM.editPlayerModal.hide();
+        displayPlayers();
+    }
+}
+
+// Verwijder alle spelers
+function removeAllPlayers() {
+    if (confirm('Weet je zeker dat je ALLE spelers wilt verwijderen?')) {
+        dataService.removeAllPlayers();
+        displayPlayers();
+    }
+}
+
+// Importeer spelers uit bestand
+function importPlayers() {
+    const file = DOM.importPlayersFile.files[0];
+
+    if (!file) {
+        alert('Selecteer een bestand');
         return;
     }
 
-    round.matches.forEach(match => {
-        const matchCard = document.createElement('div');
-        matchCard.className = 'match-card';
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const text = e.target.result;
+        const importedPlayers = utils.parseImportedPlayers(text);
 
-        const homeTeamPlayers = match.homeTeam.players.map(p => p.name).join(', ');
-        const awayTeamPlayers = match.awayTeam.players.map(p => p.name).join(', ');
-
-        let resultText = 'Nog niet gespeeld';
-        let buttonText = 'Invoeren';
-
-        if (match.completed) {
-            resultText = `${match.homeScore} - ${match.awayScore}`;
-            buttonText = 'Bewerken';
+        if (importedPlayers.length === 0) {
+            alert('Geen geldige spelergegevens gevonden');
+            return;
         }
 
-        matchCard.innerHTML = `
-            <div class="row align-items-center">
-                <div class="col-md-3">
-                    <div class="fw-bold">Team ${match.homeTeam.letter}</div>
-                    <div class="small">${homeTeamPlayers}</div>
+        // Voeg elke geïmporteerde speler toe
+        importedPlayers.forEach(player => {
+            dataService.addPlayer({
+                id: utils.generateId(),
+                name: player.name,
+                category: player.category,
+                score: 0
+            });
+        });
+
+        // Reset bestandselector
+        DOM.importPlayersFile.value = '';
+
+        // Update weergave
+        displayPlayers();
+
+        alert(`${importedPlayers.length} spelers geïmporteerd`);
+    };
+    reader.readAsText(file);
+}
+
+// ----------------------------------------
+// Instellingen management
+// ----------------------------------------
+
+// Laad instellingen in het formulier
+function loadSettings() {
+    const settings = dataService.getSettings();
+
+    DOM.teamSize.value = settings.teamSize;
+    DOM.fieldsCount.value = settings.fieldsCount;
+    DOM.matchDuration.value = settings.matchDuration;
+    DOM.tournamentDuration.value = settings.totalDuration;
+    DOM.winPoints.value = settings.winPoints;
+    DOM.drawPoints.value = settings.drawPoints;
+    DOM.goalPoints.value = settings.goalPoints;
+}
+
+// Sla instellingen op
+function saveSettings() {
+    const settings = {
+        teamSize: parseInt(DOM.teamSize.value),
+        fieldsCount: parseInt(DOM.fieldsCount.value),
+        matchDuration: parseInt(DOM.matchDuration.value),
+        totalDuration: parseInt(DOM.tournamentDuration.value),
+        winPoints: parseInt(DOM.winPoints.value),
+        drawPoints: parseInt(DOM.drawPoints.value),
+        goalPoints: parseInt(DOM.goalPoints.value)
+    };
+
+    dataService.updateSettings(settings);
+
+    // Update state
+    stateManager.notify(Events.SETTINGS_UPDATED, settings);
+
+    alert('Instellingen opgeslagen');
+}
+
+// ----------------------------------------
+// Schema management
+// ----------------------------------------
+
+// Genereer een nieuw schema
+function generateSchedule() {
+    const players = dataService.getPlayers();
+    const settings = dataService.getSettings();
+
+    if (players.length < settings.teamSize * 2) {
+        alert(`Te weinig spelers. Minimaal ${settings.teamSize * 2} spelers nodig voor ${settings.teamSize}v${settings.teamSize}.`);
+        return;
+    }
+
+    try {
+        const result = scheduleService.generateTournamentSchedule();
+
+        // Update state
+        stateManager.notify(Events.SCHEDULE_GENERATED, result);
+
+        // Update UI
+        populateRoundSelects();
+        displaySchedule();
+
+        alert('Schema gegenereerd');
+    } catch (error) {
+        alert(`Fout bij genereren schema: ${error.message}`);
+    }
+}
+
+// Toon het gegenereerde schema
+function displaySchedule() {
+    const schedule = dataService.getSchedule();
+
+    if (!schedule || !schedule.rounds || schedule.rounds.length === 0) {
+        DOM.scheduleContainer.innerHTML = '<div class="alert alert-info">Nog geen schema gegenereerd</div>';
+        return;
+    }
+
+    let html = '';
+
+    schedule.rounds.forEach(round => {
+        html += `
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5>Ronde ${round.number}</h5>
                 </div>
-                <div class="col-md-3">
-                    <div class="fw-bold">Team ${match.awayTeam.letter}</div>
-                    <div class="small">${awayTeamPlayers}</div>
-                </div>
-                <div class="col-md-3 text-center">
-                    <span class="match-result">${resultText}</span>
-                    <div class="match-field">Veld ${match.field}</div>
-                </div>
-                <div class="col-md-3 text-end">
-                    <button class="btn btn-primary btn-sm enter-result-btn" data-match-id="${match.id}">
-                        ${buttonText}
-                    </button>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Veld</th>
+                                    <th>Team 1</th>
+                                    <th>Team 2</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+        `;
+
+        round.matches.forEach((match, index) => {
+            const fieldNumber = (index % dataService.getSettings().fieldsCount) + 1;
+
+            // Haal spelersnamen op
+            const team1Players = match.team1.playerIds.map(id => {
+                const player = dataService.getPlayerById(id);
+                return player ? player.name : 'Onbekend';
+            }).join(', ');
+
+            const team2Players = match.team2.playerIds.map(id => {
+                const player = dataService.getPlayerById(id);
+                return player ? player.name : 'Onbekend';
+            }).join(', ');
+
+            html += `
+                <tr>
+                    <td>${fieldNumber}</td>
+                    <td>${team1Players}</td>
+                    <td>${team2Players}</td>
+                </tr>
+            `;
+        });
+
+        html += `
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         `;
+    });
 
-        matchesContainer.appendChild(matchCard);
+    DOM.scheduleContainer.innerHTML = html;
+}
+
+// Exporteer schema naar CSV
+function exportSchedule() {
+    const schedule = dataService.getSchedule();
+
+    if (!schedule || !schedule.rounds || schedule.rounds.length === 0) {
+        alert('Nog geen schema gegenereerd');
+        return;
+    }
+
+    const csvData = [['Ronde', 'Veld', 'Team 1', 'Team 2']];
+
+    schedule.rounds.forEach(round => {
+        round.matches.forEach((match, index) => {
+            const fieldNumber = (index % dataService.getSettings().fieldsCount) + 1;
+
+            // Haal spelersnamen op
+            const team1Players = match.team1.playerIds.map(id => {
+                const player = dataService.getPlayerById(id);
+                return player ? player.name : 'Onbekend';
+            }).join(', ');
+
+            const team2Players = match.team2.playerIds.map(id => {
+                const player = dataService.getPlayerById(id);
+                return player ? player.name : 'Onbekend';
+            }).join(', ');
+
+            csvData.push([
+                `Ronde ${round.number}`,
+                `Veld ${fieldNumber}`,
+                team1Players,
+                team2Players
+            ]);
+        });
+    });
+
+    utils.downloadCSV(csvData, 'voetbaltoernooi_schema.csv');
+}
+
+// Vul de ronde selectors voor veldindeling en wedstrijden
+function populateRoundSelects() {
+    const schedule = dataService.getSchedule();
+
+    if (!schedule || !schedule.rounds || schedule.rounds.length === 0) {
+        return;
+    }
+
+    // Veldindeling ronde selector
+    DOM.roundSelect.innerHTML = '';
+
+    // Wedstrijden ronde selector
+    DOM.matchRoundSelect.innerHTML = '';
+
+    schedule.rounds.forEach(round => {
+        const option1 = document.createElement('option');
+        option1.value = round.number;
+        option1.textContent = `Ronde ${round.number}`;
+        DOM.roundSelect.appendChild(option1);
+
+        const option2 = document.createElement('option');
+        option2.value = round.number;
+        option2.textContent = `Ronde ${round.number}`;
+        DOM.matchRoundSelect.appendChild(option2);
+    });
+
+    // Trigger change event om veldindeling te tonen
+    DOM.roundSelect.dispatchEvent(new Event('change'));
+    DOM.matchRoundSelect.dispatchEvent(new Event('change'));
+}
+
+// ----------------------------------------
+// Veldindeling management
+// ----------------------------------------
+
+// Toon veldindeling voor geselecteerde ronde
+function displayFieldLayout() {
+    const roundNumber = parseInt(DOM.roundSelect.value);
+
+    if (isNaN(roundNumber)) {
+        DOM.fieldsContainer.innerHTML = '<div class="alert alert-info">Selecteer een ronde</div>';
+        return;
+    }
+
+    const schedule = dataService.getSchedule();
+    const fieldAssignments = dataService.getFieldAssignments();
+
+    if (!schedule || !schedule.rounds || !fieldAssignments) {
+        DOM.fieldsContainer.innerHTML = '<div class="alert alert-info">Nog geen schema gegenereerd</div>';
+        return;
+    }
+
+    // Zoek de ronde
+    const round = schedule.rounds.find(r => r.number === roundNumber);
+
+    if (!round) {
+        DOM.fieldsContainer.innerHTML = '<div class="alert alert-danger">Ronde niet gevonden</div>';
+        return;
+    }
+
+    // Zoek de veldindeling
+    const roundAssignment = fieldAssignments.find(fa => fa.round === roundNumber);
+
+    if (!roundAssignment) {
+        DOM.fieldsContainer.innerHTML = '<div class="alert alert-danger">Veldindeling niet gevonden</div>';
+        return;
+    }
+
+    let html = '';
+
+    // Toon velden
+    roundAssignment.fields.forEach(field => {
+        html += `
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Veld ${field.fieldNumber}</h5>
+                    </div>
+                    <div class="card-body">
+        `;
+
+        // Zoek matches voor dit veld
+        field.matches.forEach(matchId => {
+            const match = round.matches.find(m => m.id === matchId);
+
+            if (match) {
+                // Team 1
+                html += `<div class="mb-3">
+                    <h6>Team ${match.team1.id.replace('team_', '')}</h6>
+                    <ul class="list-group">`;
+
+                match.team1.playerIds.forEach(playerId => {
+                    const player = dataService.getPlayerById(playerId);
+                    if (player) {
+                        html += `<li class="list-group-item">${player.name} (${player.category})</li>`;
+                    }
+                });
+
+                html += `</ul></div>`;
+
+                // vs
+                html += `<div class="text-center mb-3"><h6>vs</h6></div>`;
+
+                // Team 2
+                html += `<div class="mb-3">
+                    <h6>Team ${match.team2.id.replace('team_', '')}</h6>
+                    <ul class="list-group">`;
+
+                match.team2.playerIds.forEach(playerId => {
+                    const player = dataService.getPlayerById(playerId);
+                    if (player) {
+                        html += `<li class="list-group-item">${player.name} (${player.category})</li>`;
+                    }
+                });
+
+                html += `</ul></div>`;
+            }
+        });
+
+        html += `
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    // Spelers met rust
+    if (round.restingPlayers && round.restingPlayers.length > 0) {
+        html += `
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Rust</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group">
+        `;
+
+        round.restingPlayers.forEach(playerId => {
+            const player = dataService.getPlayerById(playerId);
+            if (player) {
+                html += `<li class="list-group-item">${player.name} (${player.category})</li>`;
+            }
+        });
+
+        html += `
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    DOM.fieldsContainer.innerHTML = html;
+}
+
+// ----------------------------------------
+// Wedstrijdresultaten management
+// ----------------------------------------
+
+// Toon wedstrijden voor geselecteerde ronde
+function displayMatches() {
+    const roundNumber = parseInt(DOM.matchRoundSelect.value);
+
+    if (isNaN(roundNumber)) {
+        DOM.matchesContainer.innerHTML = '<div class="alert alert-info">Selecteer een ronde</div>';
+        return;
+    }
+
+    const schedule = dataService.getSchedule();
+    const results = dataService.getResults();
+
+    if (!schedule || !schedule.rounds) {
+        DOM.matchesContainer.innerHTML = '<div class="alert alert-info">Nog geen schema gegenereerd</div>';
+        return;
+    }
+
+    // Zoek de ronde
+    const round = schedule.rounds.find(r => r.number === roundNumber);
+
+    if (!round) {
+        DOM.matchesContainer.innerHTML = '<div class="alert alert-danger">Ronde niet gevonden</div>';
+        return;
+    }
+
+    let html = `
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Veld</th>
+                        <th>Team 1</th>
+                        <th>Score</th>
+                        <th>Team 2</th>
+                        <th>Acties</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    round.matches.forEach((match, index) => {
+        const fieldNumber = (index % dataService.getSettings().fieldsCount) + 1;
+
+        // Haal spelersnamen op
+        const team1Players = match.team1.playerIds.map(id => {
+            const player = dataService.getPlayerById(id);
+            return player ? player.name : 'Onbekend';
+        }).join(', ');
+
+        const team2Players = match.team2.playerIds.map(id => {
+            const player = dataService.getPlayerById(id);
+            return player ? player.name : 'Onbekend';
+        }).join(', ');
+
+        // Controleer of er al een resultaat is
+        const result = results[match.id];
+        const scoreText = result ? `${result.homeScore} - ${result.awayScore}` : 'Nog niet gespeeld';
+
+        html += `
+            <tr>
+                <td>${fieldNumber}</td>
+                <td>${team1Players}</td>
+                <td class="text-center">${scoreText}</td>
+                <td>${team2Players}</td>
+                <td>
+                    <button class="btn btn-sm btn-primary enter-result" data-match-id="${match.id}">
+                        Invoeren
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    DOM.matchesContainer.innerHTML = html;
+
+    // Event listeners voor resultaat invoeren
+    document.querySelectorAll('.enter-result').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const matchId = this.getAttribute('data-match-id');
+            openMatchResultModal(matchId);
+        });
     });
 }
 
-function handleMatchAction(e) {
-    if (e.target.classList.contains('enter-result-btn')) {
-        const matchId = parseInt(e.target.dataset.matchId);
-        openMatchResultDialog(matchId);
+// Open het wedstrijdresultaat modal
+function openMatchResultModal(matchId) {
+    const schedule = dataService.getSchedule();
+    const results = dataService.getResults();
+
+    // Zoek de wedstrijd
+    let match = null;
+    let roundData = null;
+
+    // Zoek door alle rondes
+    for (const round of schedule.rounds) {
+        const foundMatch = round.matches.find(m => m.id === matchId);
+        if (foundMatch) {
+            match = foundMatch;
+            roundData = round;
+            break;
+        }
     }
-}
 
-function openMatchResultDialog(matchId) {
-    const match = tournamentData.matches.find(m => m.id === matchId);
+    if (!match) {
+        alert('Wedstrijd niet gevonden');
+        return;
+    }
 
-    if (!match) return;
+    // Team namen (maak leesbaar)
+    const team1Name = `Team ${match.team1.id.replace('team_', '')}`;
+    const team2Name = `Team ${match.team2.id.replace('team_', '')}`;
 
-    document.getElementById('editMatchId').value = match.id;
-    document.getElementById('homeTeamName').textContent = `Team ${match.homeTeam.letter}`;
-    document.getElementById('awayTeamName').textContent = `Team ${match.awayTeam.letter}`;
+    // Vul het modal
+    DOM.editMatchId.value = matchId;
+    DOM.homeTeamName.textContent = team1Name;
+    DOM.awayTeamName.textContent = team2Name;
 
-    if (match.completed) {
-        document.getElementById('homeTeamScore').value = match.homeScore;
-        document.getElementById('awayTeamScore').value = match.awayScore;
+    // Controleer of er al een resultaat is
+    if (results[matchId]) {
+        DOM.homeTeamScore.value = results[matchId].homeScore;
+        DOM.awayTeamScore.value = results[matchId].awayScore;
     } else {
-        document.getElementById('homeTeamScore').value = 0;
-        document.getElementById('awayTeamScore').value = 0;
+        DOM.homeTeamScore.value = 0;
+        DOM.awayTeamScore.value = 0;
     }
 
-    // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('matchResultModal'));
-    modal.show();
+    // Toon het modal
+    DOM.matchResultModal.show();
 }
 
+// Sla wedstrijdresultaat op
 function saveMatchResult() {
-    const matchId = parseInt(document.getElementById('editMatchId').value);
-    const homeScore = parseInt(document.getElementById('homeTeamScore').value);
-    const awayScore = parseInt(document.getElementById('awayTeamScore').value);
+    const matchId = DOM.editMatchId.value;
+    const homeScore = parseInt(DOM.homeTeamScore.value, 10);
+    const awayScore = parseInt(DOM.awayTeamScore.value, 10);
 
-    const match = tournamentData.matches.find(m => m.id === matchId);
-
-    if (!match) return;
-
-    const wasCompleted = match.completed;
-
-    // Update match
-    match.homeScore = homeScore;
-    match.awayScore = awayScore;
-    match.completed = true;
-
-    // Calculate points for players
-    if (!wasCompleted) {
-        // First time completion, award points
-        updatePlayerStatsForMatch(match);
-    } else {
-        // Match was already completed, reset stats and recalculate
-        resetPlayerStatsForMatch(match);
-        updatePlayerStatsForMatch(match);
+    if (isNaN(homeScore) || isNaN(awayScore) || homeScore < 0 || awayScore < 0) {
+        alert('Voer geldige scores in (0 of hoger)');
+        return;
     }
 
-    // Update UI
-    displayMatchesForRound();
-    displaySchedule();
+    // Sla resultaat op
+    dataService.setMatchResult(matchId, homeScore, awayScore);
+
+    // Update state
+    stateManager.notify(Events.MATCH_RESULT_SAVED, { matchId, homeScore, awayScore });
+
+    // Sluit modal
+    DOM.matchResultModal.hide();
+
+    // Update weergaves
+    displayMatches();
     updateStandings();
     displayPlayerOverview();
-
-    // Save data
-    saveToLocalStorage();
-
-    // Hide modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('matchResultModal'));
-    modal.hide();
 }
 
-function updatePlayerStatsForMatch(match) {
-    const { winPoints, drawPoints, goalPoints } = tournamentData.settings;
+// ----------------------------------------
+// Standen management
+// ----------------------------------------
 
-    const homeWin = match.homeScore > match.awayScore;
-    const awayWin = match.homeScore < match.awayScore;
-    const draw = match.homeScore === match.awayScore;
-
-    // Update home team players
-    match.homeTeam.players.forEach(player => {
-        // Find player in overall list
-        const p = tournamentData.players.find(p => p.id === player.id);
-        if (!p) return;
-
-        // Update stats
-        if (homeWin) {
-            p.stats.wins++;
-            p.stats.points += winPoints;
-        } else if (draw) {
-            p.stats.draws++;
-            p.stats.points += drawPoints;
-        } else if (awayWin) {
-            p.stats.losses++;
-        }
-
-        // Add points for goals
-        p.stats.goals += match.homeScore;
-        p.stats.points += match.homeScore * goalPoints;
-    });
-
-    // Update away team players
-    match.awayTeam.players.forEach(player => {
-        // Find player in overall list
-        const p = tournamentData.players.find(p => p.id === player.id);
-        if (!p) return;
-
-        // Update stats
-        if (awayWin) {
-            p.stats.wins++;
-            p.stats.points += winPoints;
-        } else if (draw) {
-            p.stats.draws++;
-            p.stats.points += drawPoints;
-        } else if (homeWin) {
-            p.stats.losses++;
-        }
-
-        // Add points for goals
-        p.stats.goals += match.awayScore;
-        p.stats.points += match.awayScore * goalPoints;
-    });
-}
-
-function resetPlayerStatsForMatch(match) {
-    const { winPoints, drawPoints, goalPoints } = tournamentData.settings;
-
-    const homeWin = match.homeScore > match.awayScore;
-    const awayWin = match.homeScore < match.awayScore;
-    const draw = match.homeScore === match.awayScore;
-
-    // Reset home team players
-    match.homeTeam.players.forEach(player => {
-        // Find player in overall list
-        const p = tournamentData.players.find(p => p.id === player.id);
-        if (!p) return;
-
-        // Reset stats
-        if (homeWin) {
-            p.stats.wins--;
-            p.stats.points -= winPoints;
-        } else if (draw) {
-            p.stats.draws--;
-            p.stats.points -= drawPoints;
-        } else if (awayWin) {
-            p.stats.losses--;
-        }
-
-        // Remove points for goals
-        p.stats.goals -= match.homeScore;
-        p.stats.points -= match.homeScore * goalPoints;
-    });
-
-    // Reset away team players
-    match.awayTeam.players.forEach(player => {
-        // Find player in overall list
-        const p = tournamentData.players.find(p => p.id === player.id);
-        if (!p) return;
-
-        // Reset stats
-        if (awayWin) {
-            p.stats.wins--;
-            p.stats.points -= winPoints;
-        } else if (draw) {
-            p.stats.draws--;
-            p.stats.points -= drawPoints;
-        } else if (homeWin) {
-            p.stats.losses--;
-        }
-
-        // Remove points for goals
-        p.stats.goals -= match.awayScore;
-        p.stats.points -= match.awayScore * goalPoints;
-    });
-}
-
-// Standings Functions
+// Update alle standen
 function updateStandings() {
-    // Get all players sorted by points (descending)
-    const sortedPlayers = [...tournamentData.players].sort((a, b) => {
-        if (b.stats.points !== a.stats.points) {
-            return b.stats.points - a.stats.points;
-        }
-        // If points are equal, sort by goals
-        return b.stats.goals - a.stats.goals;
-    });
+    const scores = dataService.getPlayerScores();
 
-    // Filter players by category
-    const jo15Players = sortedPlayers.filter(p => p.category === 'JO15');
-    const jo16Players = sortedPlayers.filter(p => p.category === 'JO16');
+    // Alle spelers
+    displayStandings(scores, DOM.allStandingsList, true);
 
-    // Update all players standings
-    updateStandingsTable('allStandingsList', sortedPlayers);
+    // JO15 spelers
+    const o11Scores = scores.filter(player => player.category === 'JO15');
+    displayStandings(o11Scores, DOM.o11StandingsList, false);
 
-    // Update category standings
-    updateStandingsTable('o11StandingsList', jo15Players);
-    updateStandingsTable('o12StandingsList', jo16Players);
+    // JO16 spelers
+    const o12Scores = scores.filter(player => player.category === 'JO16');
+    displayStandings(o12Scores, DOM.o12StandingsList, false);
 }
 
-function updateStandingsTable(tableId, players) {
-    const tbody = document.getElementById(tableId);
-    tbody.innerHTML = '';
+// Toon standen in een tabel
+function displayStandings(scores, container, showCategory) {
+    container.innerHTML = '';
 
-    players.forEach((player, index) => {
+    scores.forEach((player, index) => {
         const row = document.createElement('tr');
 
-        // Add position medal for top 3
-        let medal = '';
-        if (index === 0) {
-            medal = '<span class="medal-gold">1</span>';
-        } else if (index === 1) {
-            medal = '<span class="medal-silver">2</span>';
-        } else if (index === 2) {
-            medal = '<span class="medal-bronze">3</span>';
-        } else {
-            medal = (index + 1).toString();
+        let html = `
+            <td>${index + 1}</td>
+            <td>${player.name}</td>
+        `;
+
+        if (showCategory) {
+            html += `<td>${player.category}</td>`;
         }
 
-        // Create row content based on table type
-        if (tableId === 'allStandingsList') {
-            row.innerHTML = `
-                <td>${medal}</td>
-                <td>${player.name}</td>
-                <td>${player.category}</td>
-                <td>${player.stats.wins}</td>
-                <td>${player.stats.draws}</td>
-                <td>${player.stats.losses}</td>
-                <td>${player.stats.goals}</td>
-                <td class="fw-bold">${player.stats.points}</td>
-            `;
-        } else {
-            row.innerHTML = `
-                <td>${medal}</td>
-                <td>${player.name}</td>
-                <td>${player.stats.wins}</td>
-                <td>${player.stats.draws}</td>
-                <td>${player.stats.losses}</td>
-                <td>${player.stats.goals}</td>
-                <td class="fw-bold">${player.stats.points}</td>
-            `;
-        }
+        html += `
+            <td>${player.wins}</td>
+            <td>${player.draws}</td>
+            <td>${player.losses}</td>
+            <td>${player.goalsFor}</td>
+            <td>${player.score}</td>
+        `;
 
-        tbody.appendChild(row);
+        row.innerHTML = html;
+        container.appendChild(row);
     });
 }
 
+// Print standen
 function printStandings() {
     window.print();
 }
 
-// LocalStorage Functions
-function saveToLocalStorage() {
-    localStorage.setItem('tournamentData', JSON.stringify(tournamentData));
-}
+// ----------------------------------------
+// Speleroverzicht management
+// ----------------------------------------
 
-function loadFromLocalStorage() {
-    const savedData = localStorage.getItem('tournamentData');
-
-    if (savedData) {
-        const parsedData = JSON.parse(savedData);
-
-        // Update tournament data
-        tournamentData.players = parsedData.players || [];
-        tournamentData.settings = parsedData.settings || tournamentData.settings;
-        tournamentData.rounds = parsedData.rounds || [];
-        tournamentData.matches = parsedData.matches || [];
-        tournamentData.nextPlayerId = parsedData.nextPlayerId || 1;
-    }
-}
-
-// Update the UI based on loaded data
-function updateUI() {
-    updatePlayersList();
-
-    if (tournamentData.rounds.length > 0) {
-        updateRoundSelectors();
-        displaySchedule();
-        updateStandings();
-        displayPlayerOverview();
-    }
-
-    initSettings();
-}
-
-// Player Overview Functions
+// Toon speleroverzicht
 function displayPlayerOverview() {
-    console.log("displayPlayerOverview aangeroepen");
-
-    // Check of de benodigde elementen bestaan
-    const tableHead = document.getElementById('playerOverviewTableHead');
-    const tableBody = document.getElementById('playerOverviewTableBody');
-
-    if (!tableHead || !tableBody) {
-        console.error("Spelersoverzicht tabellen niet gevonden!", tableHead, tableBody);
+    // Check of de noodzakelijke elementen bestaan
+    if (!DOM.playerOverviewTableHead || !DOM.playerOverviewTableBody) {
+        console.error('Speleroverzicht tabel elementen niet gevonden');
         return;
     }
 
-    const showAllRoundsCheckbox = document.getElementById('showAllRounds');
-    if (!showAllRoundsCheckbox) {
-        console.error("showAllRounds checkbox niet gevonden!");
-        return;
-    }
+    const showAllRounds = DOM.showAllRounds.checked;
+    const overviewData = playerOverviewService.generatePlayerOverviewData(showAllRounds);
 
-    const showAllRounds = showAllRoundsCheckbox.checked;
+    // Maak de tabelheader
+    let headerHtml = '<tr><th>Naam</th><th>Categorie</th>';
 
-    // Clear existing data
-    tableHead.innerHTML = '';
-    tableBody.innerHTML = '';
-
-    if (!tournamentData || !tournamentData.rounds || tournamentData.rounds.length === 0) {
-        console.log("Geen rondes beschikbaar voor weergave");
-        tableBody.innerHTML = '<tr><td colspan="20" class="text-center">Nog geen schema gegenereerd. Ga naar het "Schema" tabblad om een schema te genereren.</td></tr>';
-        return;
-    }
-
-    console.log("Aantal rondes: " + tournamentData.rounds.length);
-    console.log("Aantal spelers: " + tournamentData.players.length);
-
-    // Create header row
-    const headerRow = document.createElement('tr');
-
-    // Add player name column
-    headerRow.innerHTML = '<th>Speler</th><th>Categorie</th>';
-
-    // Add round columns
-    tournamentData.rounds.forEach(round => {
-        if (showAllRounds || round === tournamentData.rounds[tournamentData.rounds.length - 1]) {
-            headerRow.innerHTML += `
-                <th colspan="2" class="text-center">Ronde ${round.number}</th>
-            `;
+    if (showAllRounds) {
+        for (let round = 1; round <= overviewData.roundsCount; round++) {
+            headerHtml += `<th>Ronde ${round}</th>`;
         }
-    });
+    }
 
-    tableHead.appendChild(headerRow);
+    headerHtml += '<th>Totaal</th></tr>';
+    DOM.playerOverviewTableHead.innerHTML = headerHtml;
 
-    // Create column labels row
-    const labelsRow = document.createElement('tr');
-    labelsRow.innerHTML = '<th></th><th></th>';
+    // Maak de tabelrijen
+    let bodyHtml = '';
 
-    tournamentData.rounds.forEach(round => {
-        if (showAllRounds || round === tournamentData.rounds[tournamentData.rounds.length - 1]) {
-            labelsRow.innerHTML += `
-                <th>Team</th>
-                <th>Score</th>
-            `;
-        }
-    });
+    // Loop door categorieën
+    Object.keys(overviewData.playersByCategory).forEach(category => {
+        // Categorie header
+        bodyHtml += `<tr class="table-primary"><td colspan="${showAllRounds ? overviewData.roundsCount + 3 : 3}"><strong>${category}</strong></td></tr>`;
 
-    tableHead.appendChild(labelsRow);
+        // Spelers in deze categorie
+        overviewData.playersByCategory[category].forEach(player => {
+            bodyHtml += `<tr><td>${player.name}</td><td>${player.category}</td>`;
 
-    // Create a row for each player
-    tournamentData.players.forEach(player => {
-        const row = document.createElement('tr');
+            if (showAllRounds) {
+                for (let round = 1; round <= overviewData.roundsCount; round++) {
+                    const roundData = player.roundScores.find(r => r.round === round);
+                    const scoreValue = roundData ? roundData.score : '';
 
-        // Add player name and category
-        row.innerHTML = `<td>${player.name}</td><td>${player.category}</td>`;
-
-        // Add data for each round
-        tournamentData.rounds.forEach(round => {
-            if (showAllRounds || round === tournamentData.rounds[tournamentData.rounds.length - 1]) {
-                // Find player's team in this round
-                const teamLetter = round.playerAssignments[player.id] || '-';
-
-                // Find match result for this player in this round
-                let matchResult = '-';
-                let playerTeam = null;
-
-                // Find the match where this player participated
-                const match = round.matches.find(m => {
-                    const inHomeTeam = m.homeTeam.players.some(p => p.id === player.id);
-                    const inAwayTeam = m.awayTeam.players.some(p => p.id === player.id);
-
-                    if (inHomeTeam) {
-                        playerTeam = 'home';
-                        return true;
-                    } else if (inAwayTeam) {
-                        playerTeam = 'away';
-                        return true;
+                    // Verschillende opmaak op basis van het resultaat
+                    let cellClass = '';
+                    if (roundData && roundData.outcome) {
+                        if (roundData.outcome === 'W') cellClass = 'table-success';
+                        else if (roundData.outcome === 'G') cellClass = 'table-warning';
+                        else if (roundData.outcome === 'V') cellClass = 'table-danger';
                     }
 
-                    return false;
-                });
-
-                if (match && match.completed) {
-                    if (playerTeam === 'home') {
-                        if (match.homeScore > match.awayScore) {
-                            matchResult = `W ${match.homeScore}-${match.awayScore}`;
-                        } else if (match.homeScore < match.awayScore) {
-                            matchResult = `V ${match.homeScore}-${match.awayScore}`;
-                        } else {
-                            matchResult = `G ${match.homeScore}-${match.awayScore}`;
-                        }
-                    } else if (playerTeam === 'away') {
-                        if (match.awayScore > match.homeScore) {
-                            matchResult = `W ${match.awayScore}-${match.homeScore}`;
-                        } else if (match.awayScore < match.homeScore) {
-                            matchResult = `V ${match.awayScore}-${match.homeScore}`;
-                        } else {
-                            matchResult = `G ${match.awayScore}-${match.homeScore}`;
-                        }
-                    }
-                } else if (teamLetter !== '-') {
-                    matchResult = 'Nog niet gespeeld';
+                    bodyHtml += `<td class="${cellClass}">${scoreValue}</td>`;
                 }
-
-                row.innerHTML += `
-                    <td class="text-center">${teamLetter}</td>
-                    <td class="text-center">${matchResult}</td>
-                `;
             }
+
+            bodyHtml += `<td><strong>${player.totalScore}</strong></td></tr>`;
         });
 
-        tableBody.appendChild(row);
+        // Lege rij na elke categorie
+        bodyHtml += `<tr><td colspan="${showAllRounds ? overviewData.roundsCount + 3 : 3}">&nbsp;</td></tr>`;
     });
 
-    console.log("Spelersoverzicht bijgewerkt");
+    DOM.playerOverviewTableBody.innerHTML = bodyHtml;
 }
 
+// Exporteer speleroverzicht naar Excel
 function exportPlayerOverview() {
-    if (tournamentData.rounds.length === 0) {
-        alert('Genereer eerst een schema voordat je het exporteert.');
-        return;
-    }
+    const showAllRounds = DOM.showAllRounds.checked;
+    const overviewData = playerOverviewService.generatePlayerOverviewData(showAllRounds);
+    const excelData = playerOverviewService.generateExcelData(overviewData);
 
-    let csvContent = 'Speler,Categorie';
-
-    // Add headers for each round
-    tournamentData.rounds.forEach(round => {
-        csvContent += `,Ronde ${round.number} Team,Ronde ${round.number} Score`;
-    });
-
-    csvContent += '\n';
-
-    // Add data for each player
-    tournamentData.players.forEach(player => {
-        csvContent += `"${player.name}","${player.category}"`;
-
-        // Add data for each round
-        tournamentData.rounds.forEach(round => {
-            // Find player's team in this round
-            const teamLetter = round.playerAssignments[player.id] || '-';
-
-            // Find match result for this player in this round
-            let matchResult = '-';
-            let playerTeam = null;
-
-            // Find the match where this player participated
-            const match = round.matches.find(m => {
-                const inHomeTeam = m.homeTeam.players.some(p => p.id === player.id);
-                const inAwayTeam = m.awayTeam.players.some(p => p.id === player.id);
-
-                if (inHomeTeam) {
-                    playerTeam = 'home';
-                    return true;
-                } else if (inAwayTeam) {
-                    playerTeam = 'away';
-                    return true;
-                }
-
-                return false;
-            });
-
-            if (match && match.completed) {
-                if (playerTeam === 'home') {
-                    if (match.homeScore > match.awayScore) {
-                        matchResult = `W ${match.homeScore}-${match.awayScore}`;
-                    } else if (match.homeScore < match.awayScore) {
-                        matchResult = `V ${match.homeScore}-${match.awayScore}`;
-                    } else {
-                        matchResult = `G ${match.homeScore}-${match.awayScore}`;
-                    }
-                } else if (playerTeam === 'away') {
-                    if (match.awayScore > match.homeScore) {
-                        matchResult = `W ${match.awayScore}-${match.homeScore}`;
-                    } else if (match.awayScore < match.homeScore) {
-                        matchResult = `V ${match.awayScore}-${match.homeScore}`;
-                    } else {
-                        matchResult = `G ${match.awayScore}-${match.homeScore}`;
-                    }
-                }
-            } else if (teamLetter !== '-') {
-                matchResult = 'Nog niet gespeeld';
-            }
-
-            csvContent += `,"${teamLetter}","${matchResult}"`;
-        });
-
-        csvContent += '\n';
-    });
-
-    // Create downloadable link
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'voetbal_toernooi_spelersoverzicht.csv');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+    utils.downloadExcel(excelData, `voetbaltoernooi_overzicht_${timestamp}.xlsx`);
 }
 
-// Functie toevoegen om alle spelers te verwijderen
-function removeAllPlayers() {
-    if (tournamentData.players.length === 0) {
-        alert('Er zijn geen spelers om te verwijderen.');
-        return;
+// ----------------------------------------
+// Event listeners
+// ----------------------------------------
+
+// Spelers tab
+DOM.addPlayerBtn.addEventListener('click', addPlayer);
+DOM.playerName.addEventListener('keypress', e => { if (e.key === 'Enter') addPlayer(); });
+DOM.importPlayersBtn.addEventListener('click', importPlayers);
+DOM.removeAllPlayersBtn.addEventListener('click', removeAllPlayers);
+
+// Event delegation voor spelers acties (edit/delete)
+DOM.playersList.addEventListener('click', e => {
+    if (e.target.closest('.edit-player')) {
+        const playerId = e.target.closest('.edit-player').getAttribute('data-id');
+        editPlayer(playerId);
+    } else if (e.target.closest('.delete-player')) {
+        const playerId = e.target.closest('.delete-player').getAttribute('data-id');
+        deletePlayer(playerId);
     }
+});
 
-    if (confirm('Weet je zeker dat je ALLE spelers wilt verwijderen? Dit kan niet ongedaan worden gemaakt.')) {
-        // Reset players array en nextPlayerId
-        tournamentData.players = [];
-        tournamentData.nextPlayerId = 1;
+// Speler bewerken modal
+DOM.saveEditPlayerBtn.addEventListener('click', saveEditPlayer);
 
-        // Als er een schema is gegenereerd, verwijder deze ook
-        if (tournamentData.rounds.length > 0) {
-            if (confirm('Er is een toernooischema actief. Wil je dit ook verwijderen?')) {
-                tournamentData.rounds = [];
-                tournamentData.matches = [];
-            }
+// Instellingen tab
+DOM.saveSettingsBtn.addEventListener('click', saveSettings);
+
+// Schema tab
+DOM.generateScheduleBtn.addEventListener('click', generateSchedule);
+DOM.exportScheduleBtn.addEventListener('click', exportSchedule);
+
+// Veldindeling tab
+DOM.roundSelect.addEventListener('change', displayFieldLayout);
+
+// Wedstrijden tab
+DOM.matchRoundSelect.addEventListener('change', displayMatches);
+DOM.saveMatchResultBtn.addEventListener('click', saveMatchResult);
+
+// Stand tab
+DOM.printStandingsBtn.addEventListener('click', printStandings);
+
+// Speleroverzicht tab
+DOM.showAllRounds.addEventListener('change', displayPlayerOverview);
+DOM.exportOverviewBtn.addEventListener('click', exportPlayerOverview);
+
+// Tab change events voor dynamische updates
+document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(tab => {
+    tab.addEventListener('shown.bs.tab', function (event) {
+        const target = event.target.getAttribute('data-bs-target');
+
+        switch (target) {
+            case '#fields':
+                displayFieldLayout();
+                break;
+            case '#matches':
+                displayMatches();
+                break;
+            case '#standings':
+                updateStandings();
+                break;
+            case '#overview':
+                displayPlayerOverview();
+                break;
         }
+    });
+});
 
-        // Update UI en opslaan
-        updatePlayersList();
-        updateStandings();
-        if (typeof displayPlayerOverview === 'function') {
-            displayPlayerOverview();
-        }
-        saveToLocalStorage();
+// State manager listeners
+stateManager.subscribe(Events.PLAYERS_UPDATED, () => {
+    // Update UI die afhankelijk is van spelers
+});
 
-        alert('Alle spelers zijn verwijderd.');
+stateManager.subscribe(Events.MATCH_RESULT_SAVED, () => {
+    // Update andere tabs (stand, overzicht)
+    updateStandings();
+    displayPlayerOverview();
+});
+
+// ----------------------------------------
+// Initialisatie
+// ----------------------------------------
+
+// Toepassing initialiseren
+function initApp() {
+    // Toon spelers
+    displayPlayers();
+
+    // Laad instellingen
+    loadSettings();
+
+    // Controleer of er een schema is en update UI
+    const schedule = dataService.getSchedule();
+    if (schedule && schedule.rounds && schedule.rounds.length > 0) {
+        populateRoundSelects();
+        displaySchedule();
     }
 }
+
+// Start de applicatie
+document.addEventListener('DOMContentLoaded', initApp);
