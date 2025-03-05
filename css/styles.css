@@ -1,0 +1,184 @@
+/* Main Styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f5f5;
+}
+
+.container {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+h1 {
+    color: #1a73e8;
+}
+
+/* Tab Navigation */
+.nav-tabs .nav-link {
+    color: #495057;
+}
+
+.nav-tabs .nav-link.active {
+    color: #1a73e8;
+    font-weight: 600;
+}
+
+/* Cards */
+.card {
+    border: none;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.card-body {
+    padding: 20px;
+}
+
+/* Tables */
+.table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+/* Field Layout */
+.field-card {
+    background-color: #e9f5e9;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid #c3e6cb;
+}
+
+.team-container {
+    background-color: #fff;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.team-heading {
+    background-color: #1a73e8;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 3px;
+    margin-bottom: 10px;
+}
+
+.player-item {
+    background-color: #f8f9fa;
+    padding: 5px 10px;
+    margin-bottom: 5px;
+    border-radius: 3px;
+    border-left: 3px solid #1a73e8;
+}
+
+/* Standings */
+.medal-gold {
+    background-color: #ffd700;
+    color: #000;
+    border-radius: 3px;
+    padding: 2px 5px;
+}
+
+.medal-silver {
+    background-color: #c0c0c0;
+    color: #000;
+    border-radius: 3px;
+    padding: 2px 5px;
+}
+
+.medal-bronze {
+    background-color: #cd7f32;
+    color: #000;
+    border-radius: 3px;
+    padding: 2px 5px;
+}
+
+/* Schedule */
+.round-divider {
+    background-color: #1a73e8;
+    color: white;
+    padding: 8px 15px;
+    margin: 20px 0 10px 0;
+    border-radius: 5px;
+}
+
+.match-card {
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-left: 4px solid #1a73e8;
+}
+
+.match-result {
+    font-weight: bold;
+    color: #1a73e8;
+}
+
+.match-time {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.match-field {
+    background-color: #e9f5e9;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 0.9rem;
+}
+
+/* Player Overview */
+#playerOverviewTable th {
+    vertical-align: middle;
+}
+
+#playerOverviewTable th[colspan="2"] {
+    background-color: #e9f5e9;
+    border-left: 1px solid #dee2e6;
+    border-right: 1px solid #dee2e6;
+}
+
+#playerOverviewTable td {
+    vertical-align: middle;
+}
+
+/* Highlight teams in overview */
+.team-cell {
+    font-weight: bold;
+    background-color: #f8f9fa;
+}
+
+/* Print Styles */
+@media print {
+    body {
+        background-color: #fff;
+    }
+
+    .container {
+        box-shadow: none;
+        margin: 0;
+        width: 100%;
+        max-width: none;
+    }
+
+    .nav-tabs,
+    .btn,
+    .modal,
+    .no-print {
+        display: none !important;
+    }
+
+    .tab-pane {
+        display: block !important;
+        opacity: 1 !important;
+    }
+
+    .card {
+        box-shadow: none;
+        border: 1px solid #ddd;
+    }
+}
