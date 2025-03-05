@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="nl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voetbal Toernooi Tool - Individuele Winnaar</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container mt-4">
+        <h1 class="text-center mb-4">Voetbal Toernooi Tool - Individuele Winnaar</h1>
+
+        <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="players-tab" data-bs-toggle="tab" data-bs-target="#players"
+                    type="button" role="tab" aria-controls="players" aria-selected="true">Spelers</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button"
+                    role="tab" aria-controls="settings" aria-selected="false">Instellingen</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="schedule-tab" data-bs-toggle="tab" data-bs-target="#schedule" type="button"
+                    role="tab" aria-controls="schedule" aria-selected="false">Schema</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="fields-tab" data-bs-toggle="tab" data-bs-target="#fields" type="button"
+                    role="tab" aria-controls="fields" aria-selected="false">Veldindeling</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="matches-tab" data-bs-toggle="tab" data-bs-target="#matches" type="button"
+                    role="tab" aria-controls="matches" aria-selected="false">Wedstrijden</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="standings-tab" data-bs-toggle="tab" data-bs-target="#standings"
+                    type="button" role="tab" aria-controls="standings" aria-selected="false">Stand</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button"
+                    role="tab" aria-controls="overview" aria-selected="false">Spelersoverzicht</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="myTabContent">
+            <!-- Spelers Tab -->
+            <div class="tab-pane fade show active" id="players" role="tabpanel" aria-labelledby="players-tab">
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <h3>Spelers Beheer</h3>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="input-group mb-3">
+                                    <input type="text" id="playerName" class="form-control" placeholder="Naam speler">
+                                    <select id="playerCategory" class="form-select">
+                                        <option value="JO15">JO15</option>
+                                        <option value="JO16">JO16</option>
+                                    </select>
+                                    <button class="btn btn-primary" id="addPlayerBtn">Toevoegen</button>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <input type="file" class="form-control" id="importPlayersFile" accept=".txt">
+                                    <button class="btn btn-success" id="importPlayersBtn">Importeren</button>
+                                </div>
+                                <small class="text-muted">Formaat: "Speler Naam" of "Speler Naam,JO15"</small>
+                            </div>
+                        </div>
+
+                        <h4>Spelerslijst</h4>
+                        <div class="d-flex justify-content-end mb-2">
+                            <button id="removeAllPlayersBtn" class="btn btn-danger">Alle spelers verwijderen</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-striped" id="playersTable">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Naam</th>
+                                        <th>Categorie</th>
+                                        <th>Acties</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="playersList">
+                                    <!-- Players will be added here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instellingen Tab -->
+            <div class="tab-pane fade" id="settings" role="tabpanel" aria-labelledby="settings-tab">
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <h3>Toernooi Instellingen</h3>
+                        <form id="tournamentSettingsForm">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="teamSize" class="form-label">Teamgrootte</label>
+                                    <select id="teamSize" class="form-select">
+                                        <option value="4">4v4</option>
+                                        <option value="3">3v3</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="fieldsCount" class="form-label">Aantal velden</label>
+                                    <input type="number" id="fieldsCount" class="form-control" min="1" value="4">
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="matchDuration" class="form-label">Wedstrijdduur (minuten)</label>
+                                    <input type="number" id="matchDuration" class="form-control" min="1" value="8">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="tournamentDuration" class="form-label">Totale toernooiduur
+                                        (minuten)</label>
+                                    <input type="number" id="tournamentDuration" class="form-control" min="1"
+                                        value="90">
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label for="winPoints" class="form-label">Punten voor winst</label>
+                                    <input type="number" id="winPoints" class="form-control" min="0" value="10">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="drawPoints" class="form-label">Punten voor gelijkspel</label>
+                                    <input type="number" id="drawPoints" class="form-control" min="0" value="5">
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="goalPoints" class="form-label">Punten per doelpunt</label>
+                                    <input type="number" id="goalPoints" class="form-control" min="0" value="1">
+                                </div>
+                            </div>
+                            <div class="text-center">
+                                <button type="button" id="saveSettingsBtn" class="btn btn-primary">Instellingen
+                                    Opslaan</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Schema Tab -->
+            <div class="tab-pane fade" id="schedule" role="tabpanel" aria-labelledby="schedule-tab">
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <h3>Wedstrijdschema</h3>
+                        <div class="d-flex justify-content-between mb-3">
+                            <button id="generateScheduleBtn" class="btn btn-primary">Genereer Schema</button>
+                            <button id="exportScheduleBtn" class="btn btn-success">Exporteer naar CSV</button>
+                        </div>
+                        <div id="scheduleContainer">
+                            <!-- Schedule will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Veldindeling Tab -->
+            <div class="tab-pane fade" id="fields" role="tabpanel" aria-labelledby="fields-tab">
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <h3>Veldindeling per Ronde</h3>
+                        <div class="mb-3">
+                            <label for="roundSelect" class="form-label">Selecteer Ronde:</label>
+                            <select id="roundSelect" class="form-select"></select>
+                        </div>
+                        <div id="fieldsContainer" class="row">
+                            <!-- Fields layout will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Wedstrijden Tab -->
+            <div class="tab-pane fade" id="matches" role="tabpanel" aria-labelledby="matches-tab">
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <h3>Wedstrijdresultaten</h3>
+                        <div class="mb-3">
+                            <label for="matchRoundSelect" class="form-label">Selecteer Ronde:</label>
+                            <select id="matchRoundSelect" class="form-select"></select>
+                        </div>
+                        <div id="matchesContainer">
+                            <!-- Matches will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stand Tab -->
+            <div class="tab-pane fade" id="standings" role="tabpanel" aria-labelledby="standings-tab">
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <h3>Individuele Stand</h3>
+                        <ul class="nav nav-pills mb-3" id="standingsTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="all-standings-tab" data-bs-toggle="pill"
+                                    data-bs-target="#all-standings" type="button" role="tab"
+                                    aria-controls="all-standings" aria-selected="true">Alle Spelers</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="o11-standings-tab" data-bs-toggle="pill"
+                                    data-bs-target="#o11-standings" type="button" role="tab"
+                                    aria-controls="o11-standings" aria-selected="false">JO15</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="o12-standings-tab" data-bs-toggle="pill"
+                                    data-bs-target="#o12-standings" type="button" role="tab"
+                                    aria-controls="o12-standings" aria-selected="false">JO16</button>
+                            </li>
+                        </ul>
+                        <div class="tab-content" id="standingsTabContent">
+                            <div class="tab-pane fade show active" id="all-standings" role="tabpanel"
+                                aria-labelledby="all-standings-tab">
+                                <div class="table-responsive">
+                                    <table class="table table-striped" id="allStandingsTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Pos</th>
+                                                <th>Naam</th>
+                                                <th>Cat</th>
+                                                <th>W</th>
+                                                <th>G</th>
+                                                <th>V</th>
+                                                <th>Doelp</th>
+                                                <th>Punten</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="allStandingsList">
+                                            <!-- Standings will be displayed here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="o11-standings" role="tabpanel"
+                                aria-labelledby="o11-standings-tab">
+                                <div class="table-responsive">
+                                    <table class="table table-striped" id="o11StandingsTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Pos</th>
+                                                <th>Naam</th>
+                                                <th>W</th>
+                                                <th>G</th>
+                                                <th>V</th>
+                                                <th>Doelp</th>
+                                                <th>Punten</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="o11StandingsList">
+                                            <!-- O11 Standings will be displayed here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="o12-standings" role="tabpanel"
+                                aria-labelledby="o12-standings-tab">
+                                <div class="table-responsive">
+                                    <table class="table table-striped" id="o12StandingsTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Pos</th>
+                                                <th>Naam</th>
+                                                <th>W</th>
+                                                <th>G</th>
+                                                <th>V</th>
+                                                <th>Doelp</th>
+                                                <th>Punten</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="o12StandingsList">
+                                            <!-- O12 Standings will be displayed here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button id="printStandingsBtn" class="btn btn-primary">Printen</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Spelersoverzicht Tab -->
+            <div class="tab-pane fade" id="overview" role="tabpanel" aria-labelledby="overview-tab">
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <h3>Spelersoverzicht per Ronde</h3>
+                        <div class="d-flex justify-content-between mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="showAllRounds" checked>
+                                <label class="form-check-label" for="showAllRounds">
+                                    Toon alle rondes
+                                </label>
+                            </div>
+                            <button id="exportOverviewBtn" class="btn btn-success">Exporteer naar Excel</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-striped" id="playerOverviewTable">
+                                <thead id="playerOverviewTableHead">
+                                    <!-- Dynamische header wordt toegevoegd door JavaScript -->
+                                </thead>
+                                <tbody id="playerOverviewTableBody">
+                                    <!-- Dynamische rijen worden toegevoegd door JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal fade" id="editPlayerModal" tabindex="-1" aria-labelledby="editPlayerModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editPlayerModalLabel">Speler Bewerken</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editPlayerId">
+                    <div class="mb-3">
+                        <label for="editPlayerName" class="form-label">Naam</label>
+                        <input type="text" class="form-control" id="editPlayerName">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editPlayerCategory" class="form-label">Categorie</label>
+                        <select class="form-select" id="editPlayerCategory">
+                            <option value="JO15">JO15</option>
+                            <option value="JO16">JO16</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuleren</button>
+                    <button type="button" class="btn btn-primary" id="saveEditPlayerBtn">Opslaan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="matchResultModal" tabindex="-1" aria-labelledby="matchResultModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="matchResultModalLabel">Wedstrijdresultaat Invoeren</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editMatchId">
+                    <div class="row mb-3">
+                        <div class="col-5 text-center" id="homeTeamName">Team A</div>
+                        <div class="col-2 text-center">vs</div>
+                        <div class="col-5 text-center" id="awayTeamName">Team B</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-5">
+                            <input type="number" class="form-control" id="homeTeamScore" min="0" value="0">
+                        </div>
+                        <div class="col-2 text-center">-</div>
+                        <div class="col-5">
+                            <input type="number" class="form-control" id="awayTeamScore" min="0" value="0">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuleren</button>
+                    <button type="button" class="btn btn-primary" id="saveMatchResultBtn">Opslaan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>
